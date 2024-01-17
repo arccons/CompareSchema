@@ -1,0 +1,5 @@
+IntCol,StrCol,BoolCol,FloatCol
+1,One,TRUE,0.6
+2,Two,FALSE,9.54
+3,Three,FALSE,76.345
+4,Four,TRUE,2.1

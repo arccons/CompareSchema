@@ -1,0 +1,5 @@
+IntCol,StrCol,BoolCol,DateCol,FloatCol
+1,One,TRUE,25-12-2023,0.6
+2,Two,FALSE,26-12-2023,9.54
+3,Three,FALSE,27-12-2023,76.345
+4,Four,TRUE,28-12-2023,2.1

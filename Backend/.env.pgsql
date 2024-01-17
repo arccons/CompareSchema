@@ -1,0 +1,14 @@
+SECRET_KEY=''
+DEBUG=True
+DB='pgsql' #'mssql'
+MSSQL_DB_HOST='DESKTOP-ALT0UH5'
+MSSQL_ENGINE='mssql'
+MSSQL_DATABASE='SchemaCheck'
+MSSQL_DB_DRIVER='ODBC Driver 17 for SQL Server'
+MSSQL_TRUSTED_CONNECTION='yes'
+PGSQL_ENGINE='django.db.backends.postgresql' #'django.db.backends.postgresql_psycopg2'
+PGSQL_DB_HOST='localhost'
+PGSQL_DATABASE='SchemaCheck'
+PGSQL_USER='postgres'
+PGSQL_PASSWD=''
+PGSQL_PORT=5432
