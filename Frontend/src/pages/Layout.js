@@ -1,23 +1,12 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet } from "react-router-dom";
+import Navbar from "../Components/Navbar";
 
-const Layout = () => {
+const Layout = ({ pageMsg }) => {
   return (
     <>
-      <nav>
-        <ul>
-          <li>
-            <Link to="/">Home</Link>
-          </li>
-          <li>
-            <Link to="/NewSubject">New Subject</Link>
-          </li>
-          <li>
-            <Link to="/contact">Contact</Link>
-          </li>
-        </ul>
-      </nav>
-
+      <Navbar></Navbar>
       <Outlet />
+      <center><p>{pageMsg}</p></center>
     </>
   )
 };

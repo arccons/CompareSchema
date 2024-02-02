@@ -20,7 +20,9 @@ from SchemaCheck import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.getData),
+    path('', views.getSubjectList),
     path('getSubjectList/', views.getSubjectList),
-    path('processFile/', views.processFile),
+    path('compareFile/', views.compareWithTable),
+    path('createLink/', views.createLink),
+    path('createSchema/', views.createSchema),
 ]

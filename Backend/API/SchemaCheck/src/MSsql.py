@@ -2,6 +2,17 @@ import os
 import pyodbc
 from datetime import datetime
 
+default_schema = f"{os.getenv('MSSQL_DB_HOST')}.{os.getenv('MSSQL_DATABASE')}.{os.getenv('MSSQL_DB_SCHEMA')}"
+
+typeMatrix = [{'int64': ['integer', 'bigint', 'smallint']}, 
+              {'float64': ['double precision', 'numeric', 'decimal', 'real', 'integer']}, #integer OTs 
+              {'string': ['character varying', 'character', 'varchar', 'xml', 'uuid']}, #uuid OTs
+              {'bool': ['bit', 'bit varying', 'boolean', 'char', ]}, 
+              {'datetime64[ns]': ['date', 'interval', 'time with time zone', 
+                'time without time zone', 'timestamp with time zone', 
+                'timestamp without time zone']}
+            ]
+
 def connect_to_DB():
     #print(DB_DRIVER, DB_HOST, DATABASE, TRUSTED_CONNECTION)
     #DBconn = pyodbc.connect(driver='{SQL Server}', server='DESKTOP-ALT0UH5', database='SchemaCheck', trusted_connection='yes')
@@ -9,7 +20,10 @@ def connect_to_DB():
     cursor = DBconn.cursor()
     return [cursor, DBconn]
 
-def commitCursor(DBconn):
+def closeConnection(DBconn):
+    DBconn.close()
+
+def commitConnection(DBconn):
     DBconn.commit()
 
 def getSubjectListSQL():
@@ -73,7 +87,7 @@ def addDateColumnSQL(table, colName):
     #print(f"Add column SQL = {sql_stmt}")
     return sql_stmt
 
-def addRecordSQL(table, tableColList, recordVals):
+def addRecordSQL(table, tableColList, recordVals, allowBlanks):
     colString = 'ID, ' + ', '.join(tableColList)
     valString = f"NEWID()"
 

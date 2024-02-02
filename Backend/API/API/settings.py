@@ -105,16 +105,26 @@ WSGI_APPLICATION = 'API.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-if os.getenv('DB') == 'mssql':
+if os.getenv('DB_TYPE') == 'mssql':
     DB1 = 'default'
     DB2 = 'postgres'
-elif os.getenv('DB') == 'pgsql':
-    DB1 = 'postgres'
+    DB0 = 'sqlite'
+elif os.getenv('DB_TYPE') == 'pgsql':
+    DB1 = 'mssql'
     DB2 = 'default'
+    DB0 = 'sqlite'
+else:
+    DB1 = 'postgres'
+    DB2 = 'mssql'
+    DB0 = 'default'
 
 DATABASES = {
+    DB0: {
+        'ENGINE': os.getenv("SQLITE_ENGINE"),
+        'NAME': os.getenv("SQLITE_FILE") #os.path.join(BASE_DIR, "SchemaCheck", os.getenv("SQLITE_FILE")),
+    },
     DB1: {
-        'ENGINE': 'mssql',
+        'ENGINE': os.getenv("MSSQL_ENGINE"), #'mssql',
         'NAME': os.getenv("MSSQL_DATABASE"), #'SchemaCheck',
         'HOST': os.getenv("MSSQL_DB_HOST"), #'DESKTOP-ALT0UH5',
         'OPTIONS': {
