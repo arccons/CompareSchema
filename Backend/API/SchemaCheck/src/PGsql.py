@@ -13,11 +13,13 @@ typeMatrix = [{'int64': ['integer', 'bigint', 'smallint']},
 fileStr = f"{__file__.strip(os.getcwd())}"
 
 def connect_to_DB():
-    #print(DB_DRIVER, DB_HOST, DATABASE, TRUSTED_CONNECTION)
-    DBconn = psycopg.connect(host=os.getenv('PGSQL_DB_HOST'), port=os.getenv('PGSQL_PORT'), dbname=os.getenv('PGSQL_DATABASE'), user=os.getenv('PGSQL_USER'), password=os.getenv('PGSQL_PASSWD'))
-    #host=localhost, port=5432, dbname=SchemaCheck, user=postgres, password=xxxxxxx 
+    DBconn = psycopg.connect(host=os.getenv('PGSQL_DB_HOST'), 
+                             port=os.getenv('PGSQL_PORT'), 
+                             dbname=os.getenv('PGSQL_DATABASE'), 
+                             user=os.getenv('PGSQL_USER'), 
+                             password=os.getenv('PGSQL_PASSWD'))
     cursor = DBconn.cursor()
-    return [cursor, DBconn]
+    return cursor, DBconn
 
 def closeConnection(DBconn):
     DBconn.close()
@@ -25,30 +27,39 @@ def closeConnection(DBconn):
 def commitConnection(DBconn):
     DBconn.commit()
 
-def getSubjectListSQL():
-    sql_stmt = f"SELECT DISTINCT subject_id, SERVER_DB_SCHEMA, TABLE_NAME, SUBJECT from subjects_temp"
-    #print(f"Subject List SQL = {sql_stmt}")
+def getTableSQL(schema, tableName):
+    sql_stmt = f"SELECT count(*) from INFORMATION_SCHEMA.tables where table_schema = '{schema}' AND table_name = '{tableName}'"
+    #print(f"Table SQL = {sql_stmt}")
+    return sql_stmt
+
+def getTableColumnsSQL(schema, tableName):
+    sql_stmt = f"SELECT ordinal_position, column_name, data_type from INFORMATION_SCHEMA.COLUMNS where table_schema = '{schema}' AND table_name = '{tableName}' ORDER BY ORDINAL_POSITION"
+    #print(f"Column List SQL = {sql_stmt}")
+    return sql_stmt
+
+def parseDBstring(server_db_schema):
+    tab_str1 = server_db_schema.replace(os.getenv('PGSQL_DB_HOST'), '')
+    tab_str2 = tab_str1.replace(os.getenv('PGSQL_DATABASE'), '')
+    schema = tab_str2.replace('.', '')
+    return {'DBserver': os.getenv('PGSQL_DB_HOST'), 
+            'targetDB': os.getenv('PGSQL_DATABASE'), 
+            'schema': schema}
+
+def checkLinkTableSQL(server_db_schema, tableName):
+    fnStr = fileStr + "::checkLinkTableSQL"
+    retVal = parseDBstring(server_db_schema)
+    schema = retVal["schema"]
+    print(f"{fnStr}: schema = {schema}")
+    whereString = f"table_catalog = '{os.getenv('PGSQL_DATABASE')}' AND table_schema = '{schema}' AND LOWER(table_name)='{tableName.lower()}'"
+    sql_stmt = f"SELECT COUNT(*) FROM INFORMATION_SCHEMA.tables WHERE {whereString}"
+    print(f"{fnStr}: {sql_stmt}")
     return sql_stmt
 
 def checkLinkSubjectSQL(server_db_schema, subject):
+    fnStr = fileStr + "::checkLinkSubjectSQL"
     whereString = f"LOWER(server_db_schema) = '{server_db_schema.lower()}' AND LOWER(subject) = '{subject.lower()}'"
     sql_stmt = f"SELECT COUNT(*) FROM public.subjects_temp WHERE {whereString}"
-    print(f"{fileStr}::checkLinkSubjectSQL: {sql_stmt}")
-    return sql_stmt
-
-""" PGSQL_DB_HOST='localhost' #Admin option
-PGSQL_DATABASE='AdventureWorks' #Admin option
-PGSQL_DB_SCHEMA='public' #Admin option """
-
-def checkLinkTableSQL(server_db_schema, tableName):
-    print(f"{fileStr}::checkTableLinkSQL: server_db_schema = {server_db_schema}")
-    tab_str1 = server_db_schema.replace(os.getenv('PGSQL_DB_HOST'), '')
-    tab_str2 = tab_str1.replace(os.getenv('PGSQL_DATABASE'), '')
-    tab_str = tab_str2.replace('.', '')
-    print(f"{fileStr}::checkTableLinkSQL: tab_str= {tab_str}")
-    whereString = f"table_catalog = '{os.getenv('PGSQL_DATABASE')}' AND table_schema = '{tab_str}' AND LOWER(table_name)='{tableName.lower()}'"
-    sql_stmt = f"SELECT COUNT(*) FROM INFORMATION_SCHEMA.tables WHERE {whereString}"
-    print(f"{fileStr}::checkLinkTableSQL: {sql_stmt}")
+    print(f"{fnStr}: {sql_stmt}")
     return sql_stmt
 
 def createLinkSQL(server_db_schema, tableName, subject):
@@ -57,19 +68,14 @@ def createLinkSQL(server_db_schema, tableName, subject):
     print(f"{fileStr}::checkLinkSQL: {sql_stmt}")
     return sql_stmt
 
+def getSubjectListSQL():
+    sql_stmt = f"SELECT DISTINCT subject_id, SERVER_DB_SCHEMA, TABLE_NAME, SUBJECT from subjects_temp"
+    #print(f"Subject List SQL = {sql_stmt}")
+    return sql_stmt
+
 def checkSubjectSQL(subject):
     sql_stmt = f"SELECT COUNT(*) from subjects_temp st where st.SUBJECT = '{subject}'"
     #print(f"Subject SQL = {sql_stmt}")
-    return sql_stmt
-
-def getTableSQL(subject):
-    sql_stmt = f"SELECT server_DB_schema, table_name from subjects_temp where subject = '{subject}'"
-    #print(f"Table SQL = {sql_stmt}")
-    return sql_stmt
-
-def getTableColumnsSQL(table):
-    sql_stmt = f"SELECT ordinal_position, column_name, data_type from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME = '{table}' ORDER BY ORDINAL_POSITION"
-    #print(f"Column List SQL = {sql_stmt}")
     return sql_stmt
 
 """ 

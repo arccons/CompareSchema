@@ -1,5 +1,10 @@
-__pycache__
+.venv
 .vscode
-~*
-CompareSchema *.docx
 Archive
+.env
+TestData
+Docs
+__pycache__
+node_modules
+~*
+*.docx

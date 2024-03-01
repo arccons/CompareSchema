@@ -1,0 +1,29 @@
+navlinks {
+    display: "inline-flex";
+    position: "right"
+}
+
+logo {
+    cursor: "pointer"
+}
+
+link {
+    color: "white"
+}
+
+/* const useStyles = styled((theme) => ({
+  navlinks: { marginLeft: theme.spacing(30), display: "inline-flex", position: "right" },
+  logo: { flexGrow: "1", cursor: "pointer", },
+  link: {
+    textAlign: "center",
+    textDecoration: "none",
+    color: "white",
+    fontSize: "20px",
+    marginLeft: theme.spacing(20),
+    "&:hover": {
+      color: "yellow",
+      borderBottom: "1px solid white",
+    },
+    display: "inline-block",
+  },
+})); */

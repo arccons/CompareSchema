@@ -1,88 +1,104 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-import { getUniqueList } from "../ARC/ArrayUtils"
+const LinkAdmin = ({ schema, links, setGotDBdata, setPageMsg }) => {
 
-const LinkAdmin = ({ uniqueSchemas, schemaSubjectList, schemaTableList, setGotSubjectList, setPageMsg }) => {
-
-    const [schema, setSchema] = useState();
-    const [subject, setSubject] = useState();
-    const [table, setTable] = useState();
+    const [localDBstr, setLocalDBstr] = useState();
+    const [schemaList, setSchemaList] = useState([]);
+    const [localSchema, setLocalSchema] = useState();
+    const [localSubject, setLocalSubject] = useState();
+    const [localTable, setLocalTable] = useState();
 
     const [formSubmitted, setFormSubmitted] = useState(false);
     const [linkCreated, setLinkCreated] = useState(false);
 
+    function handleDBchange(event) {
+        setLocalDBstr(event.target.value);
+        setLocalSchema();
+        document.getElementById("schema").value = '-1';
+        setLocalSubject();
+        document.getElementById("newSubject").value = '';
+        document.getElementById("newSubjectError").innerHTML = "";
+        setLocalTable();
+        document.getElementById("newTable").value = '';
+        document.getElementById("newTableError").innerHTML = "";
+        console.log(event.target.value);
+        let schList = schema.filter(sch => sch.DBstr === event.target.value).map(item => { return { schema: item.schema } });
+        setSchemaList(schList);
+    }
+
     function handleSchemaChange(event) {
-        document.getElementById("schemaError").innerHTML = "";
-        setSchema(event.target.value);
-        setSubject();
-        document.getElementById("newSubject").value = "";
-        setTable();
-        document.getElementById("newTable").value = "";
+        setLocalSchema(event.target.value.trim());
+        setLocalSubject();
+        document.getElementById("newSubject").value = '';
+        document.getElementById("newSubjectError").innerHTML = "";
+        setLocalTable();
+        document.getElementById("newTable").value = '';
+        document.getElementById("newTableError").innerHTML = "";
         setPageMsg("");
-        setFormSubmitted(false);
-        setLinkCreated(false);
+        console.log(event.target.value.trim());
     }
 
     function handleSubjectChange(event) {
-        document.getElementById("newSubjectError").innerHTML = "";
-        function getSchemaSubjects() {
-            let subjList = schemaSubjectList.filter((item) => item['SCHEMA'] === schema);
-            return getUniqueList(subjList, 'SUBJECT');
+        let enteredSubject = event.target.value.trim();
+        if (enteredSubject.length === 0) {
+            document.getElementById("newSubjectError").innerHTML = 'Blank entered.';
+        } else {
+            let subjTblList = schema.filter(item => item.schemaStr === localSchema);
+            console.log(...subjTblList);
+            let subjList = subjTblList.map(item => item.map(slItem => slItem.subject));
+            console.log(...subjList);
+            if (subjList.includes(enteredSubject)) {
+                document.getElementById("newSubjectError").innerHTML = "Subject already in use in this schema. Subjects: " + subjList;
+                setLocalSubject();
+                setPageMsg("Subject already in use.");
+            } else {
+                document.getElementById("newSubjectError").innerHTML = "";
+                setLocalSubject(enteredSubject);
+                setPageMsg("");
+            }
         }
-
-        if (getSchemaSubjects().includes(event.target.value)) {
-            document.getElementById("newSubjectError").innerHTML = "Subject already in use. Subjects: " + getSchemaSubjects();
-            console.error("Subject already in use: " + event.target.value);
-            setPageMsg("Subject already in use.");
-        }
-        else {
-            setSubject(event.target.value);
-            setPageMsg("");
-        }
-        setFormSubmitted(false);
-        setLinkCreated(false);
+        setLocalTable();
+        document.getElementById("newTable").value = '';
+        document.getElementById("newTableError").innerHTML = "";
     }
 
     function handleTableChange(event) {
-        document.getElementById("newTableError").innerHTML = "";
-        //let tableList = Array.from(subjectList['TABLE_NAME']);
-        function getSchemaTables() {
-            let tableList = schemaTableList.filter((item) => item['SCHEMA'] === schema);
-            return getUniqueList(tableList, 'TABLE');
-        }
-
-        if (getSchemaTables().includes(event.target.value)) {
-            setPageMsg("Table already in use in this schema.");
-            document.getElementById("newTableError").innerHTML = "Table already in use in this schema. Tables: " + getSchemaTables();
-            console.log("Table already in use: " + event.target.value);
-        }
-        else {
-            setTable(event.target.value);
+        let enteredTable = event.target.value.trim();
+        if (enteredTable.length !== 0) {
+            setLocalTable(enteredTable);
+            document.getElementById("newTableError").innerHTML = "";
             setPageMsg("");
+        } else {
+            let msgStr = "Blank entered for table";
+            document.getElementById("newTableError").innerHTML = msgStr;
+            setPageMsg(msgStr);
         }
-        setFormSubmitted(false);
-        setLinkCreated(false);
     }
 
     function handleSubmit(event) {
         event.preventDefault();
-        const url = 'http://localhost:8000/createLink/';
+        const url = 'http://localhost:8080/createLink/';
         const formData = new FormData();
-        formData.append('schema', schema);
-        formData.append('subject', subject);
-        formData.append('table', table);
+        const DBlist = localDBstr.split('.');
+        console.log(DBlist);
+        formData.append('DBtype', 'PostgreSQL');
+        formData.append('DBserver', DBlist[1]);
+        formData.append('targetDB', DBlist[2]);
+        formData.append('schema', localSchema);
+        formData.append('subject', localSubject);
+        formData.append('tableName', localTable);
         console.log(formData)
         const config = {
             headers: {
-                'content-type': 'multipart/form-data'
+                'content-type': 'application/json'
             },
         };
         axios.post(url, formData, config)
             .then((response) => {
                 document.getElementById("newSubjectError").innerHTML = "";
                 document.getElementById("newTableError").innerHTML = "";
-                setGotSubjectList(false);
+                setGotDBdata(false);
                 setLinkCreated(true);
                 setFormSubmitted(true);
                 setPageMsg(response.data.message);
@@ -101,13 +117,20 @@ const LinkAdmin = ({ uniqueSchemas, schemaSubjectList, schemaTableList, setGotSu
             <form id="MainForm" onSubmit={handleSubmit}>
                 <center><h1>New Subject and DB Table Link</h1></center>
                 <center>
-                    {/* <label htmlFor="schema">Choose a Schema: </label> */}
-                    <select required id="schema" onChange={handleSchemaChange}><option key='-1'>Pick a Schema</option>
-                        {uniqueSchemas.map(item => <option key={item} value={item}>{item}</option>)}
+                    <label htmlFor="DB">Database: </label>
+                    <select required id="DB" onChange={handleDBchange}>
+                        <option key='-1' value='-1'>Pick a Database</option>
+                        {Array.from(new Set(schema.map(sch => sch.DBstr))).map((item, index) => <option key={index} value={item}>{item}</option>)}
                     </select>
-                    <p id="schemaError"></p>
+                    <p></p>
+                    <label htmlFor="schema">Schema: </label>
+                    <select required id="schema" onChange={handleSchemaChange}>
+                        <option key='-1' value='-1'>Pick a Schema</option>
+                        {schemaList.map((item, index) => <option key={index} value={item.schema}>{item.schema}</option>)}
+                    </select>
+                    <p></p>
                     <label htmlFor="newSubject">Create a Subject: </label>
-                    <input required type="text" id="newSubject" onChange={handleSubjectChange} />
+                    <input required type="text" id="newSubject" onInput={handleSubjectChange} />
                     <p id="newSubjectError"></p>
                     <label htmlFor="newTable">Table for the Subject: </label>
                     <input required type="text" id="newTable" onChange={handleTableChange} />
@@ -119,6 +142,6 @@ const LinkAdmin = ({ uniqueSchemas, schemaSubjectList, schemaTableList, setGotSu
             {formSubmitted && !linkCreated && <center><p><b>Link creation failed!</b></p></center>}
         </div>
     );
-};
+}
 
 export default LinkAdmin;

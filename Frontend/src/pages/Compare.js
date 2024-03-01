@@ -1,34 +1,79 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const Compare = ({ uniqueSchemas, schemaSubjectList, setPageMsg }) => {
+const Compare = ({ DBtype, schema, schemaLinks, setPageMsg }) => {
 
-  const [schema, setSchema] = useState();
-  const [subjectID, setSubjectID] = useState();
-  const [subject, setSubject] = useState("No Selection");
+  const [localDBserver, setLocalDBserver] = useState();
+  const [localTargetDB, setLocalTargetDB] = useState();
+  const [localSchema, setLocalSchema] = useState();
+  const [localSubject, setLocalSubject] = useState();
+  const [localTableName, setLocalTableName] = useState();
   const [file, setFile] = useState();
 
-  //const [pageMsg, setPageMsg] = useState("");
+  const [subjectList, setSubjectList] = useState([]);
+
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [fileUploaded, setFileUploaded] = useState(false);
 
   function handleSchemaChange(event) {
-    document.getElementById("schemaError").innerHTML = "";
-    setSchema(event.target.value);
-    setSubjectID();
-    setSubject();
-    setPageMsg("");
-    setFormSubmitted(false);
-    setFileUploaded(false);
+    let pickedSchemaStr = event.target.value;
+    console.log(pickedSchemaStr);
+    if (pickedSchemaStr === '-1') {
+      setLocalSchema();
+      setSubjectList([]);
+      setLocalDBserver();
+      setLocalTargetDB();
+      setLocalSchema();
+    } else {
+      setLocalSchema(pickedSchemaStr);
+      let pickedSchemaLinks = schemaLinks.filter(sl => sl.schemaStr === pickedSchemaStr);
+      console.log(...pickedSchemaLinks);
+      if (pickedSchemaLinks.length > 0) {
+        let subjList = pickedSchemaLinks.map(psl => psl.subject);
+        setSubjectList(subjList);
+        //console.log(...subjList);
+        let DBvalues = pickedSchemaStr.split('.');
+        setLocalDBserver(DBvalues[0]);
+        setLocalTargetDB(DBvalues[1]);
+        setLocalSchema(DBvalues[2]);
+      }
+
+      document.getElementById("schemaError").innerHTML = "";
+      setLocalSubject();
+      document.getElementById("subjectError").innerHTML = "";
+      document.getElementById("subject").value = "-1";
+      setFile();
+      document.getElementById("newFileError").innerHTML = "";
+      document.getElementById("newFile").value = "";
+      setPageMsg("");
+      setLocalTableName();
+    }
   }
 
   function handleSubjectChange(event) {
+    let pickedSubject = event.target.value;
+    if (pickedSubject === '-1') {
+      setLocalSubject();
+      setLocalTableName();
+    }
+    else {
+      setLocalSubject(pickedSubject);
+      let tableName = schemaLinks.filter(sl => sl.DBtype === DBtype
+        && sl.DBserver === localDBserver
+        && sl.targetDB === localTargetDB
+        && sl.schema === localSchema
+        && sl.subject === pickedSubject)
+        .map(item => item.tableName);
+      console.log("Table Name = " + tableName);
+      setLocalTableName(tableName);
+    }
     document.getElementById("subjectError").innerHTML = "";
-    setSubjectID(event.target.value);
-    setSubject(event.target.value);
+    document.getElementById("subjectError").value = "";
+    setFile();
+    document.getElementById("newFileError").innerHTML = "";
+    document.getElementById("newFileError").value = "";
+
     setPageMsg("");
-    setFormSubmitted(false);
-    setFileUploaded(false);
   }
 
   function handleFileChange(event) {
@@ -40,23 +85,25 @@ const Compare = ({ uniqueSchemas, schemaSubjectList, setPageMsg }) => {
       setPageMsg("");
     }
     else {
+      setFile();
       setPageMsg("Unknown file type.");
       document.getElementById("newFileError").innerHTML = "Unknown file type: " + newFile.type;
       console.error("Unknown file type: " + newFile.type);
     }
-    setFormSubmitted(false);
-    setFileUploaded(false);
   }
 
   function handleSubmit(event) {
     event.preventDefault();
     const url = 'http://localhost:8000/compareFile/';
     const formData = new FormData();
-    formData.append('schema', schema);
+    formData.append('DBtype', DBtype);
+    formData.append('DBserver', localDBserver);
+    formData.append('targetDB', localTargetDB);
+    formData.append('schema', localSchema);
+    formData.append('subject', localSubject);
+    formData.append('tableName', localTableName);
     formData.append('uploadedFile', file);
     formData.append('fileType', file.type);
-    formData.append('subject', subject);
-    formData.append('subject_ID', subjectID);
     const config = {
       headers: {
         'content-type': 'multipart/form-data'
@@ -64,17 +111,15 @@ const Compare = ({ uniqueSchemas, schemaSubjectList, setPageMsg }) => {
     };
     axios.post(url, formData, config)
       .then((response) => {
-        document.getElementById("newFileError").innerHTML = "";
         setFileUploaded(true);
         setFormSubmitted(true);
         setPageMsg(response.data.message);
-        console.log("response: ", { ...response });
+        console.log(response.data.message);
       })
       .catch((error) => {
         setFileUploaded(false);
         setFormSubmitted(true);
         setPageMsg(error.message);
-        console.log("error: ", { ...error })
         console.error("error.message: ", error.message);
       });
   }
@@ -85,18 +130,20 @@ const Compare = ({ uniqueSchemas, schemaSubjectList, setPageMsg }) => {
         <center>
           <h1>Compare File with DB Schema</h1>
           <label htmlFor="schema">Schema: </label>
-          <select required id="schema" onChange={handleSchemaChange}><option key='-1'>Pick a Schema</option>
-            {uniqueSchemas.map(item => <option key={item} value={item}>{item}</option>)}
+          <select required id="schema" onChange={handleSchemaChange}>
+            <option key='-1' value='-1'>Pick a Schema</option>
+            {schema.map((item, index) => <option key={index} value={item.schemaStr}>{item.schemaStr}</option>)}
           </select>
           <p id="schemaError"></p>
           <label htmlFor="subject">Subject: </label>
-          <select required id="subject" onChange={handleSubjectChange}><option key='-1'>Pick a Subject</option>
-            {schemaSubjectList.map(item => (item[1] === schema) ? <option key={item[0]} value={item[2]}>{item[2]}</option> : "")}
+          <select required id="subject" onChange={handleSubjectChange}>
+            <option key='-1' value='-1'>Pick a Subject</option>
+            {subjectList.map((sl, index) => { return <option key={index} value={sl}>{sl}</option> })}
           </select>
           <p id="subjectError"></p>
           <p >Only .csv and .xl* files allowed. Blank rows will be ignored.</p>
-          <label htmlFor="fileToUpload">File: </label>
-          <input required type="file" id="fileToUpload" onChange={handleFileChange} />
+          <label htmlFor="newFile">File: </label>
+          <input required type="file" id="newFile" onChange={handleFileChange} />
           <p id="newFileError"></p>
           <button>Compare Schema</button>
           {formSubmitted && fileUploaded && <center><b><p>Schema compare successful!</p></b></center>}
@@ -105,6 +152,6 @@ const Compare = ({ uniqueSchemas, schemaSubjectList, setPageMsg }) => {
       </form>
     </div>
   );
-};
+}
 
 export default Compare;

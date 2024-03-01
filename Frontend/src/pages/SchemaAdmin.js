@@ -1,79 +1,90 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-import { getUniqueList } from "../ARC/ArrayUtils"
+//import { getUniqueList } from "../ARC/ArrayUtils"
 
-const SchemaAdmin = ({ server, uniqueSchemas, setPageMsg }) => {
-    const [DBtype, setDBtype] = useState();
-    const [DB, setDB] = useState();
-    const [schema, setSchema] = useState();
+const SchemaAdmin = ({ schema, setGotDBdata, setPageMsg }) => {
+    const [localDBtype, setLocalDBtype] = useState();
+    const [localServer, setLocalServer] = useState();
+    const [localDB, setLocalDB] = useState();
+    const [localSchema, setLocalSchema] = useState();
 
     const [formSubmitted, setFormSubmitted] = useState(false);
     const [schemaCreated, setSchemaCreated] = useState(false);
 
     function handleDBtypeChange(event) {
-        document.getElementById("newDB").value = "";
-        document.getElementById("newSchema").value = "";
-        setDBtype(event.target.value);
-        setDB();
-        setSchema();
+        document.getElementById("newDBtypeError").value = "";
+        setLocalDBtype(event.target.value);
+        document.getElementById("newServerError").value = "";
+        setLocalServer();
+        document.getElementById("newDBerror").value = "";
+        setLocalDB();
+        document.getElementById("newSchemaError").value = "";
+        setLocalSchema();
         setPageMsg("");
-        setFormSubmitted(false);
-        setSchemaCreated(false);
+    }
+
+    function handleServerChange(event) {
+        document.getElementById("newServerError").value = "";
+        setLocalServer(event.target.value.trim());
+        document.getElementById("newDBerror").value = "";
+        setLocalDB();
+        document.getElementById("newSchemaError").value = "";
+        setLocalSchema();
+        setPageMsg("");
     }
 
     function handleDBChange(event) {
-        document.getElementById("newDBerror").innerHTML = "";
-        document.getElementById("newSchemaError").innerHTML = "";
-        document.getElementById("newSchema").value = "";
-        setDB(event.target.value);
-        setSchema();
+        document.getElementById("newDBerror").value = "";
+        setLocalDB(event.target.value.trim());
+        document.getElementById("newSchemaError").value = "";
+        setLocalSchema();
         setPageMsg("");
-        setFormSubmitted(false);
-        setSchemaCreated(false);
     }
 
     function handleSchemaChange(event) {
-        document.getElementById("newSchemaError").innerHTML = "";
-        setSchema(event.target.value);
+        let enteredSchema = event.target.value.trim();
+        document.getElementById("newSchemaError").value = "";
+        setLocalSchema(event.target.value.trim());
         setPageMsg("");
-        setFormSubmitted(false);
-        setSchemaCreated(false);
+        const localSchemaStr = localServer + '.' + localDB + '.' + enteredSchema;
+        //console.log(schema);
+        let pickedSchema = schema.filter(sch => sch.DBtype === localDBtype && sch.schemaStr === localSchemaStr);
+        if (pickedSchema.length === 0) {
+            setLocalSchema(enteredSchema);
+        } else {
+            setPageMsg("Schema already set up for this database.");
+        }
     }
 
     function handleSubmit(event) {
         event.preventDefault();
-        const db_schema = server + '.' + DB + '.' + schema;
-        if (!uniqueSchemas.includes(db_schema)) {
-            const url = 'http://localhost:8000/createSchema/';
-            const formData = new FormData();
-            formData.append('schema', schema);
-            formData.append('DB', DB);
-            formData.append('DBtype', DBtype);
-            formData.append('server', server);
-            console.log(formData)
-            const config = {
-                headers: {
-                    'content-type': 'multipart/form-data'
-                },
-            };
-            axios.post(url, formData, config)
-                .then((response) => {
-                    setSchemaCreated(true);
-                    setFormSubmitted(true);
-                    setPageMsg(response.data.message);
-                    console.log("response.data.message: ", response.data.message);
-                })
-                .catch((error) => {
-                    setSchemaCreated(false);
-                    setFormSubmitted(true);
-                    setPageMsg(error.message);
-                    console.error("error.message: ", error.message);
-                });
-        }
-        else {
-            setPageMsg("Schema already in use.")
-        }
+        const url = 'http://localhost:8080/createSchema/';
+        const formData = new FormData();
+        formData.append('DBtype', localDBtype);
+        formData.append('DBserver', localServer);
+        formData.append('targetDB', localDB);
+        formData.append('schema', localSchema)
+        console.log(formData)
+        const config = {
+            headers: {
+                'content-type': 'application/json'
+            },
+        };
+        axios.post(url, formData, config)
+            .then((response) => {
+                setSchemaCreated(true);
+                setFormSubmitted(true);
+                setPageMsg(response.data.message);
+                setGotDBdata(false);
+                console.log("response.data.message: ", response.data.message);
+            })
+            .catch((error) => {
+                setSchemaCreated(false);
+                setFormSubmitted(true);
+                setPageMsg(error.message);
+                console.error("error.message: ", error.message);
+            });
     }
 
     return (
@@ -81,14 +92,16 @@ const SchemaAdmin = ({ server, uniqueSchemas, setPageMsg }) => {
             <form id="MainForm" onSubmit={handleSubmit}>
                 <center><h1>New DB Schema</h1></center>
                 <center>
-                    {/* <label htmlFor="schema">Choose a Schema: </label> */}
                     <label htmlFor="dbType">Database Type: </label>
                     <select required id="dbType" onChange={handleDBtypeChange}>
-                        <option>Pick a Database Type</option>
+                        <option key='-1' value='-1'>Pick a Database Type</option>
                         <option key='PostgreSQL' value='PostgreSQL'>Postgre SQL</option>
                         <option key='SQL Server' value='SQL Server'>SQL Server</option>
                     </select>
-                    <p id="newDBtypeerror"></p>
+                    <p id="newDBtypeError"></p>
+                    <label htmlFor="newServer">DB Server: </label>
+                    <input required type="text" id="newServer" onChange={handleServerChange} />
+                    <p id="newServerError"></p>
                     <label htmlFor="newDB">Database: </label>
                     <input required type="text" id="newDB" onChange={handleDBChange} />
                     <p id="newDBerror"></p>
