@@ -21,8 +21,6 @@ export default function App() {
   const [links, setLinks] = useState([]);
   const [schemaLinks, setSchemaLinks] = useState([]);
   const [gotDBdata, setGotDBdata] = useState(false);
-
-
   const [pageMsg, setPageMsg] = useState("");
 
   useEffect(() => {
@@ -60,7 +58,7 @@ export default function App() {
           setGotDBdata(false);
         });
     }
-  })
+  }, [gotDBdata])
 
   return (
     <BrowserRouter>
